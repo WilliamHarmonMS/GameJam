@@ -270,6 +270,10 @@ public class PlayerController : NetworkBehaviour
 		{
 			// Shoot on the server
 			CmdPlaceBomb();
+
+			/*GameObject activeBomb = GameObject.Instantiate<GameObject>(bomb);
+
+
 		}
 
 		if (Input.GetButtonDown("place") && !checkBusy())

@@ -22,36 +22,72 @@ public class GenerateLevel : NetworkBehaviour {
 
 	// Use this for initialization
 	private string[] levelData = new string[] 
-	{ "", "", "bricks", "", "", "", "", "", "", "",
-	  "", "", "bricks", "", "", "", "bricks", "", "", "",
-		"", "", "bricks", "", "", "", "", "", "", "",
-		"", "", "bricks", "", "bricks", "", "bricks", "", "", "",
-		"", "", "bricks", "", "", "", "", "", "", "",
-		"", "", "bricks", "", "", "", "", "", "", "",
-		"", "", "bricks", "", "", "bricks", "", "", "", "",
-		"", "", "bricks", "", "", "", "", "", "", "",
-		"", "", "bricks", "", "", "", "", "bricks", "", "",
-		"", "", "bricks", "", "", "", "", "", "", "",};
+	{ "", "", "", "", "", "", "", "", "", "",
+	  "", "", "", "", "", "", "", "", "", "",
+		"", "", "", "", "", "", "", "", "", "",
+		"", "", "grass", "", "", "", "", "", "", "",
+		"", "", "", "", "", "", "", "", "", "",
+		"", "", "", "", "", "", "", "", "", "",
+		"", "", "", "", "", "", "", "", "", "",
+		"", "", "", "", "", "", "", "", "", "",
+		"", "", "", "", "", "", "", "", "", "",
+		"", "", "", "", "", "", "", "", "", "",};
+
+	private string[] floorData = new string[]
+	{ "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass",
+		"grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass",
+		"grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass",
+		"grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass",
+		"grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass",
+		"grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass",
+		"grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass",
+		"grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass",
+		"grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass",
+		"grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass",};
 
 	void Start () {
 		// Only server generates level
 		if (!NetworkServer.active)
 			return;
+
 		groundPlane = new GameObject[rowCount,columnCount];
 		actionPlane = new GameObject[rowCount, columnCount];
 
 		//make ground plane
-		for (int i = 0; i < rowCount; ++i)
+		if (makeRandom)
 		{
-			for(int j = 0; j < columnCount; ++j)
+			for (int i = 0; i < rowCount; ++i)
 			{
-				GameObject block = GameObject.Instantiate<GameObject>(grass);
-				block.transform.position = new Vector3(i, -j, 0);
-				block.GetComponent<SpriteRenderer>().sortingOrder = j;
-				float randomTint = Random.Range(0.8f, 1.0f);
-				block.GetComponent<SpriteRenderer>().color = new Color(randomTint, randomTint, randomTint, 1);
-				groundPlane[i, j] = block;
+				for (int j = 0; j < columnCount; ++j)
+				{
+					GameObject block = GameObject.Instantiate<GameObject>(grass);
+					block.transform.position = new Vector3(i, -j, 0);
+					block.GetComponent<SpriteRenderer>().sortingOrder = j;
+					float randomTint = Random.Range(0.8f, 1.0f);
+					block.GetComponent<SpriteRenderer>().color = new Color(randomTint, randomTint, randomTint, 1);
+					groundPlane[i, j] = block;
 				NetworkServer.Spawn(block);
+				}
+			}
+		} else {
+			for (int i = 0; i < rowCount; ++i)
+			{
+				for (int j = 0; j < columnCount; ++j)
+				{
+					int index = j + (i * columnCount);
+					string blockType = floorData[index];
+					if (blockType != "")
+					{
+						GameObject prefab = (GameObject)Resources.Load(blockType);
+						GameObject block = GameObject.Instantiate(prefab);
+						block.GetComponent<SpriteRenderer>().sortingOrder = j;
+						block.transform.position = new Vector3(i, -j, 0);
+						float randomTint = Random.Range(0.8f, 1.0f);
+						block.GetComponent<SpriteRenderer>().color = new Color(randomTint, randomTint, randomTint, 1);
+						groundPlane[i, j] = block;
+						NetworkServer.Spawn(block);
+					}
+				}
 			}
 		}
 
@@ -104,6 +140,11 @@ public class GenerateLevel : NetworkBehaviour {
 						GameObject block = GameObject.Instantiate(prefab);
 						block.GetComponent<SpriteRenderer>().sortingOrder = (i * 10) + 100;
 						block.transform.position = new Vector3(j, -i + 0.5f, 0);
+						block.tag = "ActionBlock";
+						BoxCollider2D bc = block.AddComponent<BoxCollider2D>();
+						bc.offset = new Vector2(0, -0.1f);
+						bc.size = new Vector2(0.4f, 0.4f);
+
 						actionPlane[j, i] = block;
 						NetworkServer.Spawn(block);
 					}
