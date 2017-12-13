@@ -340,7 +340,7 @@ public class PlayerController : NetworkBehaviour
 		activeBomb.transform.position = new Vector3(playerIndex[0], -playerIndex[1] + 0.5f, 0);
 		activeBomb.transform.position += FaceToVec(facingDirection);
 		activeBomb.GetComponent<SpriteRenderer>().sortingOrder = GetComponent<SpriteRenderer>().sortingOrder + FaceToSort(facingDirection);
-		activeBomb.GetComponent<PlanePosition>().Set(playerIndex);
+		activeBomb.GetComponent<PlanePosition>().Set(playerIndex, PlanePosition.PlaneType.Action);
 		NetworkServer.Spawn(activeBomb);
 	}
 

@@ -74,7 +74,7 @@ public class BombBehavior : NetworkBehaviour {
 
 					workingExplo.transform.position = new Vector3(x, y, 0);
 					workingExplo.GetComponent<SpriteRenderer>().sortingOrder = 2000;
-					workingExplo.GetComponent<PlanePosition>().Set(index);
+					workingExplo.GetComponent<PlanePosition>().Set(index, PlanePosition.PlaneType.Action);
 					NetworkServer.Spawn(workingExplo);
 				}
 			}

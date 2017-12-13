@@ -4,20 +4,29 @@ using UnityEngine;
 using UnityEngine.Networking;
 
 public class PlanePosition : NetworkBehaviour {
+	public enum PlaneType
+	{
+		Ground,
+		Action
+	}
+
 	[SyncVar]
 	private int Row;
 	[SyncVar]
 	private int Column;
+	[SyncVar]
+	private PlaneType Type;
 
-	public void Set(int row, int column)
+	public void Set(int row, int column, PlaneType type)
 	{
 		Row = row;
 		Column = column;
+		Type = type;
 	}
 
-	public void Set(int[] index)
+	public void Set(int[] index, PlaneType type)
 	{
-		Set(index[1], index[0]);
+		Set(index[1], index[0], type);
 	}
 
 	// Use this for initialization
@@ -29,6 +38,14 @@ public class PlanePosition : NetworkBehaviour {
 	void Update () {
 		// Overkill to do this every frame, event handler would be better
 		// I'm not sure what the actual layering here is, but this should update the order appropriately given the row
-		GetComponent<SpriteRenderer>().sortingOrder = Row * 10;
+		int bias = 0;
+		int mul = 1;
+		// TODO: is this correct? It seems goune plane sort is just row, action is row*10 + 100, and player is row*10 + 101
+		if (Type == PlaneType.Action)
+		{
+			mul = 10;
+			bias = 100;
+		}
+		GetComponent<SpriteRenderer>().sortingOrder = Row * mul + bias;
 	}
 }
