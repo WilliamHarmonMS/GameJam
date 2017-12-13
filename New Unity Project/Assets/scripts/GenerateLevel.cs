@@ -104,12 +104,12 @@ public class GenerateLevel : MonoBehaviour {
 			}
 		}
 
-
-		if(actionPlane[playerStartPosition[0], playerStartPosition[1]] == null)
-		{
-			GameObject player = GameObject.Instantiate<GameObject>(steve);
-			player.transform.position = new Vector3(playerStartPosition[0], playerStartPosition[1] + 0.5f, 0);
-		}
+		//Can't generate them now, players should look for a spawn position in OnLocalPlayerStart
+		//if(actionPlane[playerStartPosition[0], playerStartPosition[1]] == null)
+		//{
+		//	GameObject player = GameObject.Instantiate<GameObject>(steve);
+		//	player.transform.position = new Vector3(playerStartPosition[0], playerStartPosition[1] + 0.5f, 0);
+		//}
 	}
 	
 	// Update is called once per frame

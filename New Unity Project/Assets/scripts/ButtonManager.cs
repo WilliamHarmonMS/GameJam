@@ -7,6 +7,8 @@ public class ButtonManager : MonoBehaviour {
 
 	bool delayTillUpdate = true;
 
+	private GameObject Player = null;
+
 	// Use this for initialization
 	void Start () {
 		
@@ -23,7 +25,22 @@ public class ButtonManager : MonoBehaviour {
 
 	void f_ptr()
 	{
-		GameObject Player = GameObject.FindGameObjectWithTag("Player");
-		Player.GetComponent<PlayerController>().handleButton(gameObject.name);
+		if (!this.Player)
+		{
+			GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
+			foreach (GameObject player in players)
+			{
+				if (player.GetComponent<PlayerController>().isLocalPlayer)
+				{
+					this.Player = player;
+					break;
+				}
+			}
+		}
+
+		if (this.Player)
+		{
+			this.Player.GetComponent<PlayerController>().handleButton(gameObject.name);
+		}
 	}
 }

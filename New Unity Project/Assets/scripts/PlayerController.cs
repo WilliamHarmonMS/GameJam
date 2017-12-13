@@ -1,8 +1,9 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Networking;
 
-public class PlayerController : MonoBehaviour
+public class PlayerController : NetworkBehaviour
 {
 	public enum Facing
 	{
@@ -155,6 +156,9 @@ public class PlayerController : MonoBehaviour
 
 	public void handleButton(string button)
 	{
+		// Multiplayer players sync themselves
+		if (!isLocalPlayer)
+			return;
 		if (moveDirection == Vector3.zero && !checkBusy())
 		{
 			if (button == "left")
@@ -196,6 +200,9 @@ public class PlayerController : MonoBehaviour
 
 	void Update()
 	{
+		// Multiplayer players sync themselves
+		if (!isLocalPlayer)
+			return;
 		Debug.Log("moving is: " + moving);
 		Debug.Log("busy is: " + busy);
 		if (moveDirection == Vector3.zero && !checkBusy())
