@@ -46,13 +46,46 @@ public class BombBehavior : NetworkBehaviour {
 		GenerateLevel levelModel = GameObject.FindGameObjectWithTag("LevelModel").GetComponent<GenerateLevel>();
 		GameObject[,] actionPlane = levelModel.actionPlane;
 		GameObject[,] groundPlane = levelModel.groundPlane;
-		int multiplier = 1;
+		//int multiplier = 1;
 		int[] index = getIndex();
 
 		//start up
 		Vector3 indexVector = new Vector3(0, -1, 0);
+		for (int i = 0; i < 4; ++i)
+		{
+			for (int j = 1; j <= threatenedSpaces; ++j)
+			{
+				int workingX = (int)indexVector.x * j;
+				int workingY = (int)indexVector.y * j;
+				if (index[0] + workingX < 0 || index[0] + workingX >= 10 || index[1] + workingY < 0 || index[1] + workingY >= 10)
+				{
+					//don't
+				}
+				else
+				{
+					GameObject actionBlock = actionPlane[index[0] + workingX, index[1] + workingY];
+					if (actionBlock == null)
+					{
+						GameObject workingExplo = GameObject.Instantiate<GameObject>(explosion);
+						float x = groundPlane[index[0] + workingX, index[1] + workingY].transform.position.x;
+						float y = groundPlane[index[0] + workingX, index[1] + workingY].transform.position.y + 0.4f;
 
-		for(int i = 0; i < threatenedSpaces; ++i)
+
+						workingExplo.transform.position = new Vector3(x, y, 0);
+						workingExplo.GetComponent<SpriteRenderer>().sortingOrder = 2000;
+						workingExplo.GetComponent<PlanePosition>().Set(index, PlanePosition.PlaneType.Action);
+						NetworkServer.Spawn(workingExplo);
+					}
+					else
+					{
+						break;
+					}
+				}
+			}
+			indexVector = rotateAround(indexVector, 90);
+		}
+		/*
+		for (int i = 0; i < threatenedSpaces; ++i)
 		{
 			if (i % 4 == 0 && i != 0)
 			{
@@ -78,11 +111,8 @@ public class BombBehavior : NetworkBehaviour {
 					NetworkServer.Spawn(workingExplo);
 				}
 			}
-
-
-
 			indexVector = rotateAround(indexVector, 90);
-		}
+		}*/
 	}
 
 	Vector3 rotateAround(Vector3 vector, float angle)
