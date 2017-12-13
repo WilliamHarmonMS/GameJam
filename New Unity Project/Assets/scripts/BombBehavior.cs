@@ -1,8 +1,9 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Networking;
 
-public class BombBehavior : MonoBehaviour {
+public class BombBehavior : NetworkBehaviour {
 	public float lifetime;
 	public GameObject explosion;
 	public int threatenedSpaces = 4;
@@ -73,6 +74,8 @@ public class BombBehavior : MonoBehaviour {
 
 					workingExplo.transform.position = new Vector3(x, y, 0);
 					workingExplo.GetComponent<SpriteRenderer>().sortingOrder = 2000;
+					workingExplo.GetComponent<PlanePosition>().Set(index);
+					NetworkServer.Spawn(workingExplo);
 				}
 			}
 
@@ -126,9 +129,13 @@ public class BombBehavior : MonoBehaviour {
 		}
 		else
 		{
-			GameObject.Destroy(this.gameObject);
-			//int[] index = getIndex();
-			explode();
+			// Server authoritative explosion
+			if (NetworkServer.active)
+			{
+				GameObject.Destroy(this.gameObject);
+				//int[] index = getIndex();
+				explode();
+			}
 		}
 	}
 }
