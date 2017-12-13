@@ -11,11 +11,31 @@ public class PlanePosition : NetworkBehaviour {
 	}
 
 	[SyncVar]
-	private int Row;
+	public int Row;
 	[SyncVar]
-	private int Column;
+	public int Column;
 	[SyncVar]
-	private PlaneType Type;
+	public PlaneType Type;
+
+	public int GetRow()
+	{
+		return Row;
+	}
+
+	public int GetColumn()
+	{
+		return Column;
+	}
+
+	public PlaneType GetPlaneType()
+	{
+		return Type;
+	}
+
+	public bool Matches(int row, int column, PlaneType type)
+	{
+		return Row == row && Column == column && Type == type;
+	}
 
 	public void Set(int row, int column, PlaneType type)
 	{
@@ -29,11 +49,6 @@ public class PlanePosition : NetworkBehaviour {
 		Set(index[1], index[0], type);
 	}
 
-	// Use this for initialization
-	void Start () {
-		
-	}
-	
 	// Update is called once per frame
 	void Update () {
 		// Overkill to do this every frame, event handler would be better

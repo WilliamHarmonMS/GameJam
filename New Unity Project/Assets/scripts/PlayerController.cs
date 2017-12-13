@@ -25,8 +25,6 @@ public class PlayerController : NetworkBehaviour
 	};
 
 	private GenerateLevel levelModel;
-	public GameObject[,] groundPlane;
-	public GameObject[,] actionPlane;
 	public GameObject bomb;
 	public GameObject block;
 	public GameObject destroyOverlay;
@@ -46,8 +44,6 @@ public class PlayerController : NetworkBehaviour
 	void Start()
 	{
 		levelModel = GameObject.FindGameObjectWithTag("LevelModel").GetComponent<GenerateLevel>();
-		groundPlane = levelModel.groundPlane;
-		actionPlane = levelModel.actionPlane;
 		playerIndex = levelModel.playerStartPosition;
 		GetComponent<SpriteRenderer>().sortingOrder = playerIndex[1] + 101;
 	}
@@ -60,7 +56,7 @@ public class PlayerController : NetworkBehaviour
 
 	Vector3 setMoveDirection(int x, int y)
 	{
-		GameObject indexOccupant = actionPlane[playerIndex[0] + x, playerIndex[1] - y];
+		GameObject indexOccupant = GetFromPlane(playerIndex[1] - y, playerIndex[0] + x, PlanePosition.PlaneType.Action);
 		if (indexOccupant != null)
 		{
 			if (indexOccupant.tag == "ActionBlock")
@@ -104,48 +100,27 @@ public class PlayerController : NetworkBehaviour
 
 	bool checkConflict(Facing direction)
 	{
-		int[] offset = new int[] { 0, 0 };
-		switch (direction)
-		{
-			case Facing.Up:
-				offset[1] = -1;
-				break;
-			case Facing.Right:
-				offset[0] = 1;
-				break;
-			case Facing.Down:
-				offset[1] = 1;
-				break;
-			case Facing.Left:
-				offset[0] = -1;
-				break;
-		}
-
-		GameObject actionBlock = actionPlane[playerIndex[0] + offset[0], playerIndex[1] + offset[1]];
-		return actionBlock != null;
+		Vector2Int offset = FaceToIndex(direction);
+		Vector2Int pIndex = new Vector2Int(playerIndex[0], playerIndex[1]);
+		Vector2Int index = pIndex + offset;
+		GameObject actionBlock = GetFromPlane(index, PlanePosition.PlaneType.Action);
+		GameObject groundBlock = GetFromPlane(index, PlanePosition.PlaneType.Ground);
+		bool isTool = actionBlock && actionBlock.tag != "ActionBlock";
+		return (actionBlock != null && !isTool) || groundBlock == null;
 	}
 
 	GameObject getBlockAt(Facing direction)
 	{
-		int[] offset = new int[] { 0, 0 };
-		switch (direction)
-		{
-			case Facing.Up:
-				offset[1] = -1;
-				break;
-			case Facing.Right:
-				offset[0] = 1;
-				break;
-			case Facing.Down:
-				offset[1] = 1;
-				break;
-			case Facing.Left:
-				offset[0] = -1;
-				break;
-		}
-
-		GameObject actionBlock = actionPlane[playerIndex[0] + offset[0], playerIndex[1] + offset[1]];
+		Vector2Int offset = FaceToIndex(direction);
+		Vector2Int index = new Vector2Int(playerIndex[0], playerIndex[1]) + offset;
+		GameObject actionBlock = GetFromPlane(index, PlanePosition.PlaneType.Action);
 		return actionBlock;
+	}
+
+	string getTagAt(Facing direction)
+	{
+		GameObject obj = getBlockAt(direction);
+		return obj ? obj.tag : "";
 	}
 
 	bool checkBusy()
@@ -170,7 +145,7 @@ public class PlayerController : NetworkBehaviour
 		{
 			if (button == "left")
 			{
-				if (!checkConflict(Facing.Left) || getBlockAt(Facing.Left).tag != "ActionBlock")
+				if (!checkConflict(Facing.Left))
 				{
 					moveDirection = setMoveDirection(-1, 0);
 					facingDirection = Facing.Left;
@@ -178,7 +153,7 @@ public class PlayerController : NetworkBehaviour
 			}
 			else if (button == "right")
 			{
-				if (!checkConflict(Facing.Right) || getBlockAt(Facing.Right).tag != "ActionBlock")
+				if (!checkConflict(Facing.Right))
 				{
 					moveDirection = setMoveDirection(1, 0);
 					facingDirection = Facing.Right;
@@ -186,7 +161,7 @@ public class PlayerController : NetworkBehaviour
 			}
 			else if (button == "up")
 			{
-				if (!checkConflict(Facing.Up) || getBlockAt(Facing.Up).tag != "ActionBlock")
+				if (!checkConflict(Facing.Up))
 				{
 					moveDirection = setMoveDirection(0, 1);
 					facingDirection = Facing.Up;
@@ -195,7 +170,7 @@ public class PlayerController : NetworkBehaviour
 			}
 			else if (button == "down")
 			{
-				if (!checkConflict(Facing.Down) || getBlockAt(Facing.Down).tag != "ActionBlock")
+				if (!checkConflict(Facing.Down))
 				{
 					moveDirection = setMoveDirection(0, -1);
 					facingDirection = Facing.Down;
@@ -216,21 +191,21 @@ public class PlayerController : NetworkBehaviour
 		{
 			if (Input.GetButton("left"))
 			{
-				if(!checkConflict(Facing.Left) || getBlockAt(Facing.Left).tag != "ActionBlock")
+				if(!checkConflict(Facing.Left))
 				{
 					moveDirection = setMoveDirection(-1, 0);
 					facingDirection = Facing.Left;
 				}
 			} else if (Input.GetButton("right"))
 			{
-				if (!checkConflict(Facing.Right) || getBlockAt(Facing.Right).tag != "ActionBlock")
+				if (!checkConflict(Facing.Right))
 				{
 					moveDirection = setMoveDirection(1, 0);
 					facingDirection = Facing.Right;
 				}
 			} else if (Input.GetButton("up"))
 			{
-				if (!checkConflict(Facing.Up) || getBlockAt(Facing.Up).tag != "ActionBlock")
+				if (!checkConflict(Facing.Up))
 				{
 					moveDirection = setMoveDirection(0, 1);
 					facingDirection = Facing.Up;
@@ -238,7 +213,7 @@ public class PlayerController : NetworkBehaviour
 				}
 			} else if (Input.GetButton("down"))
 			{
-				if (!checkConflict(Facing.Down) || getBlockAt(Facing.Down).tag != "ActionBlock")
+				if (!checkConflict(Facing.Down))
 				{
 					moveDirection = setMoveDirection(0, -1);
 					facingDirection = Facing.Down;
@@ -274,11 +249,15 @@ public class PlayerController : NetworkBehaviour
 
 		if (Input.GetButtonDown("place") && !checkBusy())
 		{
-			GameObject placedBlock = GameObject.Instantiate<GameObject>(block);
+			// TODO: command to make this server side, who knows about the action plane and will put it there.
+			/*GameObject placedBlock = GameObject.Instantiate<GameObject>(block);
 			placedBlock.transform.position = new Vector3(playerIndex[0], -playerIndex[1] + 0.5f, 0);
+			Vector3 posOffset = Vector3.zero;
+			Vector2Int index = new Vector2Int(playerIndex[0], playerIndex[1]);
 			switch (facingDirection)
 			{
 				case Facing.Up:
+					posOffset = Vector3.up;
 					placedBlock.transform.position += new Vector3(0, 1, 0);
 					actionPlane[playerIndex[0], playerIndex[1] - 1] = placedBlock;
 					placedBlock.GetComponent<SpriteRenderer>().sortingOrder = GetComponent<SpriteRenderer>().sortingOrder - 10;
@@ -298,29 +277,16 @@ public class PlayerController : NetworkBehaviour
 					actionPlane[playerIndex[0] - 1, playerIndex[1]] = placedBlock;
 					placedBlock.GetComponent<SpriteRenderer>().sortingOrder = GetComponent<SpriteRenderer>().sortingOrder;
 					break;
-			}
+			}*/
 		}
 
 		if(Input.GetButtonDown("destroy") && !checkBusy())
 		{
 			GameObject actionBlock = null;
-			switch (facingDirection)
-			{
-				case Facing.Up:
-					actionBlock = actionPlane[playerIndex[0], playerIndex[1] - 1];
-					break;
-				case Facing.Right:
-					actionBlock = actionPlane[playerIndex[0] + 1, playerIndex[1]];
-					break;
-				case Facing.Down:
-					actionBlock = actionPlane[playerIndex[0], playerIndex[1] + 1];
-					break;
-				case Facing.Left:
-					actionBlock = actionPlane[playerIndex[0] - 1, playerIndex[1]];
-					break;
-			}
-
-			if(actionBlock != null)
+			Vector2Int index = new Vector2Int(playerIndex[0], playerIndex[1]);
+			index += FaceToIndex(facingDirection);
+			actionBlock = GetFromPlane(index.y, index.x, PlanePosition.PlaneType.Action);
+			if (actionBlock != null)
 			{
 				busy = true;
 				GameObject overlay = GameObject.Instantiate<GameObject>(destroyOverlay);
@@ -364,6 +330,47 @@ public class PlayerController : NetworkBehaviour
 			case Facing.Down: return 10;
 			default: return 0;
 		}
+	}
+
+	public static Vector2Int FaceToIndex(Facing facing)
+	{
+		switch (facing)
+		{
+			case Facing.Up: return Vector2Int.down;
+			case Facing.Right: return Vector2Int.right;
+			case Facing.Down: return Vector2Int.up;
+			case Facing.Left: return Vector2Int.left;
+			default: return Vector2Int.zero;
+		}
+	}
+
+	private Vector3 CoordsToVec(int row, int col)
+	{
+		return new Vector3(col, -row + 0.5f, 0.0f);
+	}
+
+	private Vector2 CoordsToVec2(int row, int col)
+	{
+		return new Vector2(col, -row + 0.5f);
+	}
+
+	private GameObject GetFromPlane(Vector2Int index, PlanePosition.PlaneType type)
+	{
+		return GetFromPlane(index.y, index.x, type);
+	}
+
+	private GameObject GetFromPlane(int row, int col, PlanePosition.PlaneType type)
+	{
+		Vector2 start = CoordsToVec2(row, col);
+		Collider2D[] hits = Physics2D.OverlapBoxAll(start, Vector2.one * 0.1f, 0.0f);
+		foreach (Collider2D hit in hits)
+		{
+			GameObject obj = hit.gameObject;
+			PlanePosition p = obj.GetComponent<PlanePosition>();
+			if (p && p.Matches(row, col, type))
+				return obj;
+		}
+		return null;
 	}
 }
 
