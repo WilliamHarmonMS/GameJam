@@ -196,8 +196,6 @@ public class PlayerController : MonoBehaviour
 
 	void Update()
 	{
-		Debug.Log("moving is: " + moving);
-		Debug.Log("busy is: " + busy);
 		if (moveDirection == Vector3.zero && !checkBusy())
 		{
 			if (Input.GetButton("left"))
