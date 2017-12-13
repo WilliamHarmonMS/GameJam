@@ -1,8 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Networking;
+using System.Linq;
 
-public class PlayerController : MonoBehaviour
+public class PlayerController : NetworkBehaviour
 {
 	public enum Facing
 	{
@@ -48,6 +50,12 @@ public class PlayerController : MonoBehaviour
 		actionPlane = levelModel.actionPlane;
 		playerIndex = levelModel.playerStartPosition;
 		GetComponent<SpriteRenderer>().sortingOrder = playerIndex[1] + 101;
+	}
+
+	public override void OnStartLocalPlayer()
+	{
+		base.OnStartLocalPlayer();
+		// Initalize things here, maybe grab a spawn location?
 	}
 
 	Vector3 setMoveDirection(int x, int y)
@@ -196,6 +204,10 @@ public class PlayerController : MonoBehaviour
 
 	void Update()
 	{
+		// Multiplayer players sync themselves
+		if (!isLocalPlayer)
+			return;
+
 		if (moveDirection == Vector3.zero && !checkBusy())
 		{
 			if (Input.GetButton("left"))
@@ -252,7 +264,10 @@ public class PlayerController : MonoBehaviour
 
 		if (Input.GetButtonDown("shoot") && !checkBusy())
 		{
-			GameObject activeBomb = GameObject.Instantiate<GameObject>(bomb);
+			// Shoot on the server
+			CmdPlaceBomb();
+
+			/*GameObject activeBomb = GameObject.Instantiate<GameObject>(bomb);
 			activeBomb.transform.position = new Vector3(playerIndex[0], -playerIndex[1] + 0.5f, 0);
 			switch (facingDirection)
 			{
@@ -272,7 +287,9 @@ public class PlayerController : MonoBehaviour
 					activeBomb.transform.position  += new Vector3(-1, 0, 0);
 					activeBomb.GetComponent<SpriteRenderer>().sortingOrder = GetComponent<SpriteRenderer>().sortingOrder;
 					break;
-			}
+			}*/
+
+
 		}
 
 		if (Input.GetButtonDown("place") && !checkBusy())
@@ -333,6 +350,39 @@ public class PlayerController : MonoBehaviour
 				td.Life = 1.0f;
 				StartCoroutine(busyDelay(1));
 			}
+		}
+	}
+
+	[Command]
+	void CmdPlaceBomb()
+	{
+		GameObject activeBomb = GameObject.Instantiate<GameObject>(bomb);
+		activeBomb.transform.position = new Vector3(playerIndex[0], -playerIndex[1] + 0.5f, 0);
+		activeBomb.transform.position += FaceToVec(facingDirection);
+		activeBomb.GetComponent<SpriteRenderer>().sortingOrder = GetComponent<SpriteRenderer>().sortingOrder + FaceToSort(facingDirection);
+		activeBomb.GetComponent<PlanePosition>().Set(playerIndex);
+		NetworkServer.Spawn(activeBomb);
+	}
+
+	public static Vector3 FaceToVec(Facing facing)
+	{
+		switch (facing)
+		{
+			case Facing.Up: return Vector3.up;
+			case Facing.Right: return Vector3.right;
+			case Facing.Down: return Vector3.down;
+			case Facing.Left: return Vector3.left;
+			default: return Vector3.zero;
+		}
+	}
+
+	public static int FaceToSort(Facing facing)
+	{
+		switch (facing)
+		{
+			case Facing.Up: return -10;
+			case Facing.Down: return 10;
+			default: return 0;
 		}
 	}
 }

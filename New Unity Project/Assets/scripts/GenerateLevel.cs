@@ -1,9 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Networking;
 
-
-public class GenerateLevel : MonoBehaviour {
+public class GenerateLevel : NetworkBehaviour
+{
 	private bool makeRandom = false;
 
 	public GameObject grass;
@@ -46,6 +47,10 @@ public class GenerateLevel : MonoBehaviour {
 		"grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass",};
 
 	void Start () {
+		// Only server generates level
+		if (!NetworkServer.active)
+			return;
+
 		groundPlane = new GameObject[rowCount,columnCount];
 		actionPlane = new GameObject[rowCount, columnCount];
 
@@ -62,6 +67,7 @@ public class GenerateLevel : MonoBehaviour {
 					float randomTint = Random.Range(0.8f, 1.0f);
 					block.GetComponent<SpriteRenderer>().color = new Color(randomTint, randomTint, randomTint, 1);
 					groundPlane[i, j] = block;
+					NetworkServer.Spawn(block);
 				}
 			}
 		} else {
@@ -80,6 +86,7 @@ public class GenerateLevel : MonoBehaviour {
 						float randomTint = Random.Range(0.8f, 1.0f);
 						block.GetComponent<SpriteRenderer>().color = new Color(randomTint, randomTint, randomTint, 1);
 						groundPlane[i, j] = block;
+						NetworkServer.Spawn(block);
 					}
 				}
 			}
@@ -101,6 +108,7 @@ public class GenerateLevel : MonoBehaviour {
 						//float randomTint = Random.Range(0.8f, 1.0f);
 						//block.GetComponent<SpriteRenderer>().color = new Color(randomTint, randomTint, randomTint, 1);
 						actionPlane[i, j] = block;
+						NetworkServer.Spawn(block);
 					}
 					else
 					{
@@ -113,6 +121,7 @@ public class GenerateLevel : MonoBehaviour {
 							pUp.transform.position = new Vector3(i, -j + 0.5f, 0);
 							pUp.tag = "PowerUp";
 							actionPlane[i, j] = pUp;
+							NetworkServer.Spawn(pUp);
 						}
 					}
 				}
@@ -138,6 +147,7 @@ public class GenerateLevel : MonoBehaviour {
 						bc.size = new Vector2(0.4f, 0.4f);
 
 						actionPlane[j, i] = block;
+						NetworkServer.Spawn(block);
 					}
 				}
 			}
