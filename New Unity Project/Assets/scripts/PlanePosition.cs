@@ -7,7 +7,8 @@ public class PlanePosition : NetworkBehaviour {
 	public enum PlaneType
 	{
 		Ground,
-		Action
+		Action,
+		Player
 	}
 
 	[SyncVar]
@@ -61,10 +62,16 @@ public class PlanePosition : NetworkBehaviour {
 		int bias = 0;
 		int mul = 1;
 		// TODO: is this correct? It seems goune plane sort is just row, action is row*10 + 100, and player is row*10 + 101
-		if (Type == PlaneType.Action)
+		switch (Type)
 		{
-			mul = 10;
-			bias = 100;
+			case PlaneType.Action:
+				mul = 10;
+				bias = 100;
+				break;
+			case PlaneType.Player:
+				mul = 10;
+				bias = 101;
+				break;
 		}
 		GetComponent<SpriteRenderer>().sortingOrder = Row * mul + bias;
 	}

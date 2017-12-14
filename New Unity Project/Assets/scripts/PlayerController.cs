@@ -55,7 +55,7 @@ public class PlayerController : NetworkBehaviour
 		GenerateLevel serverInfo = GameObject.FindGameObjectWithTag("LevelModel").GetComponent<GenerateLevel>();
 		playerNumber = serverInfo.assignPlayer;
 		++serverInfo.assignPlayer;
-		playerIndex = serverInfo.indexToPosition(serverInfo.playerOneIndex);
+		SetPlayerIndex(serverInfo.indexToPosition(serverInfo.playerOneIndex));
 		GetComponent<SpriteRenderer>().sortingOrder = playerIndex.y + 101;
 		transform.position = new Vector3(playerIndex.x, playerIndex.y + 0.5f, 0);
 	}
@@ -81,7 +81,7 @@ public class PlayerController : NetworkBehaviour
 					workingIndex = serverInfo.playerFourIndex;
 					break;
 			}
-			playerIndex = serverInfo.indexToPosition(workingIndex);
+			SetPlayerIndex(serverInfo.indexToPosition(workingIndex));
 			GetComponent<SpriteRenderer>().sortingOrder = playerIndex.y + 101;
 			transform.position = new Vector3(playerIndex.x, -playerIndex.y + 0.5f, 0);
 		}
@@ -94,26 +94,44 @@ public class PlayerController : NetworkBehaviour
 		// Initalize things here, maybe grab a spawn location?
 	}
 
-	Vector3 setMoveDirection(int x, int y)
+	void setMoveDirection(int x, int y)
 	{
-		GameObject indexOccupant = GetFromPlane(playerIndex[1] - y, playerIndex[0] + x, PlanePosition.PlaneType.Action);
-		if (indexOccupant != null)
+		if (x != 0 || y != 0)
 		{
-			if (indexOccupant.tag == "ActionBlock")
+			GameObject indexOccupant = GetFromPlane(playerIndex[1] - y, playerIndex[0] + x, PlanePosition.PlaneType.Action);
+			if (indexOccupant != null)
 			{
-				return Vector3.zero;
-			}
-			if (indexOccupant.tag == "PowerUp")
-			{
-				assignPower(indexOccupant);
+				if (indexOccupant.tag == "ActionBlock")
+				{
+					moveDirection = Vector3.zero;
+					return;
+				}
+				if (indexOccupant.tag == "PowerUp")
+				{
+					assignPower(indexOccupant);
+				}
 			}
 		}
 
-		playerIndex[0] = playerIndex[0] + x;
-		playerIndex[1] = playerIndex[1] - y;
+		SetPlayerIndex(playerIndex + new Vector2Int(x, -y));
 		updateIndexOnServer(playerNumber);
 		moving = true;
-		return new Vector3(x, y, 0);
+		moveDirection = new Vector3(x, y, 0);
+		CmdSyncMoveDir(moveDirection);
+	}
+
+	[Command]
+	void CmdSyncMoveDir(Vector3 dir)
+	{
+		moveDirection = dir;
+		RpcClientSyncMoveDir(dir);
+	}
+
+	[ClientRpc]
+	void RpcClientSyncMoveDir(Vector3 dir)
+	{
+		if (!hasAuthority)
+			moveDirection = dir;
 	}
 
 	void updateIndexOnServer(int myNumber)
@@ -207,42 +225,32 @@ public class PlayerController : NetworkBehaviour
 				{
 					if (!checkConflict(Facing.Left))
 					{
-						moveDirection = setMoveDirection(-1, 0);
+						setMoveDirection(-1, 0);
 						facingDirection = Facing.Left;
-						GetComponent<SpriteRenderer>().sprite = spriteList[6];
-						GetComponent<Animator>().runtimeAnimatorController = animationList[6];
 					}
 				}
 				else if (button == "right")
 				{
 					if (!checkConflict(Facing.Right))
 					{
-						moveDirection = setMoveDirection(1, 0);
+						setMoveDirection(1, 0);
 						facingDirection = Facing.Right;
-						GetComponent<SpriteRenderer>().sprite = spriteList[5];
-						GetComponent<Animator>().runtimeAnimatorController = animationList[5];
 					}
 				}
 				else if (button == "up")
 				{
 					if (!checkConflict(Facing.Up))
 					{
-						moveDirection = setMoveDirection(0, 1);
+						setMoveDirection(0, 1);
 						facingDirection = Facing.Up;
-						GetComponent<SpriteRenderer>().sortingOrder -= 10;
-						GetComponent<SpriteRenderer>().sprite = spriteList[7];
-						GetComponent<Animator>().runtimeAnimatorController = animationList[7];
 					}
 				}
 				else if (button == "down")
 				{
 					if (!checkConflict(Facing.Down))
 					{
-						moveDirection = setMoveDirection(0, -1);
+						setMoveDirection(0, -1);
 						facingDirection = Facing.Down;
-						GetComponent<SpriteRenderer>().sortingOrder += 10;
-						GetComponent<SpriteRenderer>().sprite = spriteList[4];
-						GetComponent<Animator>().runtimeAnimatorController = animationList[4];
 					}
 				}
 			}
@@ -264,38 +272,83 @@ public class PlayerController : NetworkBehaviour
 	void Update()
 	{
 		// Multiplayer players sync themselves
-		if (!isLocalPlayer)
-			return;
+		if (isLocalPlayer)
+		{
+			UpdateInput();
+		}
+		UpdateAnimation();
+	}
 
+	void UpdateAnimation()
+	{
+		Animator anim = GetComponent<Animator>();
+		if (anim.runtimeAnimatorController == null && moveDirection != Vector3.zero)
+		{
+			Facing facing = VecToFace(moveDirection);
+			SetSprite(facing, false);
+			anim.runtimeAnimatorController = animationList[GetSpriteIndex(facing) + 4];
+		}
+		else if (anim.runtimeAnimatorController != null && moveDirection == Vector3.zero)
+		{
+			SetSprite(VecToFace(moveDirection), false);
+			anim.runtimeAnimatorController = null;
+		}
+	}
+
+	void SetSprite(Facing dir, bool moving)
+	{
+		int spriteIndex = GetSpriteIndex(dir);
+		if (moving)
+			spriteIndex += 4;
+		GetComponent<SpriteRenderer>().sprite = spriteList[spriteIndex];
+	}
+
+	int GetSpriteIndex(Facing dir)
+	{
+		switch (dir)
+		{
+			case Facing.Down: return 0;
+			case Facing.Right: return 1;
+			case Facing.Left: return 2;
+			case Facing.Up: return 3;
+			default: return 0;
+		}
+	}
+
+	void UpdateInput()
+	{
 		if (moveDirection == Vector3.zero && !checkBusy())
 		{
 			if (Input.GetButton("left"))
 			{
-				if(!checkConflict(Facing.Left))
+				if (!checkConflict(Facing.Left))
 				{
-					moveDirection = setMoveDirection(-1, 0);
+					setMoveDirection(-1, 0);
 					facingDirection = Facing.Left;
 				}
-			} else if (Input.GetButton("right"))
+			}
+			else if (Input.GetButton("right"))
 			{
 				if (!checkConflict(Facing.Right))
 				{
-					moveDirection = setMoveDirection(1, 0);
+					setMoveDirection(1, 0);
 					facingDirection = Facing.Right;
 				}
-			} else if (Input.GetButton("up"))
+			}
+			else if (Input.GetButton("up"))
 			{
 				if (!checkConflict(Facing.Up))
 				{
-					moveDirection = setMoveDirection(0, 1);
+					setMoveDirection(0, 1);
 					facingDirection = Facing.Up;
 					GetComponent<SpriteRenderer>().sortingOrder -= 10;
 				}
-			} else if (Input.GetButton("down"))
+			}
+			else if (Input.GetButton("down"))
 			{
 				if (!checkConflict(Facing.Down))
 				{
-					moveDirection = setMoveDirection(0, -1);
+					setMoveDirection(0, -1);
 					facingDirection = Facing.Down;
 					GetComponent<SpriteRenderer>().sortingOrder += 10;
 				}
@@ -314,26 +367,7 @@ public class PlayerController : NetworkBehaviour
 
 			if (t >= 1)
 			{
-				switch (facingDirection)
-				{
-					case Facing.Down:
-						GetComponent<SpriteRenderer>().sprite = spriteList[0];
-						GetComponent<Animator>().runtimeAnimatorController = null;
-						break;
-					case Facing.Right:
-						GetComponent<SpriteRenderer>().sprite = spriteList[1];
-						GetComponent<Animator>().runtimeAnimatorController = null;
-						break;
-					case Facing.Left:
-						GetComponent<SpriteRenderer>().sprite = spriteList[2];
-						GetComponent<Animator>().runtimeAnimatorController = null;
-						break;
-					case Facing.Up:
-						GetComponent<SpriteRenderer>().sprite = spriteList[3];
-						GetComponent<Animator>().runtimeAnimatorController = null;
-						break;
-				}
-				moveDirection = Vector3.zero;
+				setMoveDirection(0, 0);
 				lerpAnchor = Vector3.zero;
 				t = 0;
 				moving = false;
@@ -379,7 +413,7 @@ public class PlayerController : NetworkBehaviour
 			}*/
 		}
 
-		if(Input.GetButtonDown("destroy") && !checkBusy())
+		if (Input.GetButtonDown("destroy") && !checkBusy())
 		{
 			GameObject actionBlock = null;
 			Vector2Int index = new Vector2Int(playerIndex[0], playerIndex[1]);
@@ -440,6 +474,19 @@ public class PlayerController : NetworkBehaviour
 		}
 	}
 
+	public static Facing VecToFace(Vector3 v)
+	{
+		if (v == Vector3.up)
+			return Facing.Up;
+		if (v == Vector3.right)
+			return Facing.Right;
+		if (v == Vector3.down)
+			return Facing.Down;
+		if (v == Vector3.left)
+			return Facing.Left;
+		return Facing.Down;
+	}
+
 	public static int FaceToSort(Facing facing)
 	{
 		switch (facing)
@@ -489,6 +536,12 @@ public class PlayerController : NetworkBehaviour
 				return obj;
 		}
 		return null;
+	}
+
+	private void SetPlayerIndex(Vector2Int index)
+	{
+		playerIndex = index;
+		GetComponent<PlanePosition>().Set(index, PlanePosition.PlaneType.Player);
 	}
 }
 
