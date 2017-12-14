@@ -6,7 +6,8 @@ public class DebugClick : MonoBehaviour {
 
 	private void OnMouseDown()
 	{
-		Debug.Log(GetComponent<SpriteRenderer>().sortingOrder);
+		Debug.Log("sort order of clicked is: " + GetComponent<SpriteRenderer>().sortingOrder);
+		Debug.Log("position of clicked is: " + transform.position);
 	}
 
 	// Use this for initialization

@@ -33,6 +33,7 @@ public class PlayerController : NetworkBehaviour
 	public PowerUp currentPowerUp = PowerUp.None;
 
 	private int[] playerIndex = new int[2];
+	private Vector2Int realPlayerIndex = new Vector2Int();
 
 	private bool moving = false;
 	private bool busy = false;
@@ -47,9 +48,7 @@ public class PlayerController : NetworkBehaviour
 	void Start()
 	{
 		levelModel = GameObject.FindGameObjectWithTag("LevelModel").GetComponent<GenerateLevel>();
-		playerIndex = levelModel.playerStartPosition;
-		GetComponent<SpriteRenderer>().sortingOrder = playerIndex[1] + 101;
-		transform.position = new Vector3(playerIndex[0], playerIndex[1] + 0.5f, 0);
+
 	}
 
 	public override void OnStartServer()
@@ -57,6 +56,9 @@ public class PlayerController : NetworkBehaviour
 		GenerateLevel serverInfo = GameObject.FindGameObjectWithTag("LevelModel").GetComponent<GenerateLevel>();
 		playerNumber = serverInfo.assignPlayer;
 		++serverInfo.assignPlayer;
+		realPlayerIndex = serverInfo.indexToPosition(serverInfo.playerOneIndex);
+		GetComponent<SpriteRenderer>().sortingOrder = realPlayerIndex.y + 101;
+		transform.position = new Vector3(realPlayerIndex.x, realPlayerIndex.y + 0.5f, 0);
 	}
 
 	public override void OnStartLocalPlayer()
@@ -66,9 +68,29 @@ public class PlayerController : NetworkBehaviour
 		{
 			playerNumber = serverInfo.assignPlayer;
 			++serverInfo.assignPlayer;
+
+			int workingIndex = 0;
+			switch (playerNumber)
+			{
+				case 2:
+					workingIndex = serverInfo.playerTwoIndex;
+					break;
+				case 3:
+					workingIndex = serverInfo.playerThreeIndex;
+					break;
+				case 4:
+					workingIndex = serverInfo.playerFourIndex;
+					break;
+			}
+			realPlayerIndex = serverInfo.indexToPosition(workingIndex);
+			GetComponent<SpriteRenderer>().sortingOrder = realPlayerIndex.y + 101;
+			transform.position = new Vector3(realPlayerIndex.x, -realPlayerIndex.y + 0.5f, 0);
 		}
 
-		Debug.Log(playerNumber);
+		Debug.Log("Player number is: " + playerNumber);
+		Debug.Log("realPlayerIndex: " + realPlayerIndex);
+		Debug.Log("position: " + transform.position);
+		Debug.Log("sort order is: " + GetComponent<SpriteRenderer>().sortingOrder);
 		base.OnStartLocalPlayer();
 		// Initalize things here, maybe grab a spawn location?
 	}

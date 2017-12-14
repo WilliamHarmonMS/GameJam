@@ -21,6 +21,17 @@ public class GenerateLevel : NetworkBehaviour
 	[SyncVar]
 	public int assignPlayer = 1;
 
+	[SyncVar]
+	public int playerOneIndex = 0;
+	[SyncVar]
+	public int playerTwoIndex = 9;
+	[SyncVar]
+	public int playerThreeIndex = 90;
+	[SyncVar]
+	public int playerFourIndex = 99;
+
+
+
 	[SerializeField]
 	public SortedDictionary<GameObject, string> blockList;
 
@@ -117,6 +128,19 @@ public class GenerateLevel : NetworkBehaviour
 		//}
 	}
 
+
+	public int positionToIndex(int x, int y)
+	{
+		return (y * columnCount) + x;
+	}
+
+	public Vector2Int indexToPosition(int index)
+	{
+		Vector2Int returnValue = new Vector2Int();
+		returnValue.y = (int)(index / columnCount);
+		returnValue.x = index - (returnValue.y * columnCount);
+		return returnValue;
+	}
 	// Update is called once per frame
 	void Update()
 	{
