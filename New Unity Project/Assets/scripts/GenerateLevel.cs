@@ -18,6 +18,9 @@ public class GenerateLevel : NetworkBehaviour
 	public GameObject[,] actionPlane;
 	public GameObject[] powerUps;
 
+	[SyncVar]
+	public int assignPlayer = 1;
+
 	[SerializeField]
 	public SortedDictionary<GameObject, string> blockList;
 
@@ -33,6 +36,7 @@ public class GenerateLevel : NetworkBehaviour
 		"", "", "bricks", "", "", "", "", "", "", "",
 		"", "", "bricks", "", "", "", "", "bricks", "", "",
 		"", "", "bricks", "", "", "", "", "", "", "",};
+
 
 	void Start()
 	{

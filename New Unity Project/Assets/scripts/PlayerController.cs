@@ -33,23 +33,42 @@ public class PlayerController : NetworkBehaviour
 	public PowerUp currentPowerUp = PowerUp.None;
 
 	private int[] playerIndex = new int[2];
+
 	private bool moving = false;
 	private bool busy = false;
 	private Vector3 moveDirection = Vector3.zero;
 	private float t = 0.0f;
 	private Vector3 lerpAnchor = Vector3.zero;
-	
+	private int playerNumber = -1;
 
+	public Sprite[] spriteList;
+	public RuntimeAnimatorController[] animationList;
 	// Use this for initialization
 	void Start()
 	{
 		levelModel = GameObject.FindGameObjectWithTag("LevelModel").GetComponent<GenerateLevel>();
 		playerIndex = levelModel.playerStartPosition;
 		GetComponent<SpriteRenderer>().sortingOrder = playerIndex[1] + 101;
+		transform.position = new Vector3(playerIndex[0], playerIndex[1] + 0.5f, 0);
+	}
+
+	public override void OnStartServer()
+	{
+		GenerateLevel serverInfo = GameObject.FindGameObjectWithTag("LevelModel").GetComponent<GenerateLevel>();
+		playerNumber = serverInfo.assignPlayer;
+		++serverInfo.assignPlayer;
 	}
 
 	public override void OnStartLocalPlayer()
 	{
+		GenerateLevel serverInfo = GameObject.FindGameObjectWithTag("LevelModel").GetComponent<GenerateLevel>();
+		if(playerNumber == -1)
+		{
+			playerNumber = serverInfo.assignPlayer;
+			++serverInfo.assignPlayer;
+		}
+
+		Debug.Log(playerNumber);
 		base.OnStartLocalPlayer();
 		// Initalize things here, maybe grab a spawn location?
 	}
@@ -141,43 +160,65 @@ public class PlayerController : NetworkBehaviour
 		// Multiplayer players sync themselves
 		if (!isLocalPlayer)
 			return;
-		if (moveDirection == Vector3.zero && !checkBusy())
+		if (!checkBusy())
 		{
-			if (button == "left")
+			if (moveDirection == Vector3.zero)
 			{
-				if (!checkConflict(Facing.Left))
+				if (button == "left")
 				{
-					moveDirection = setMoveDirection(-1, 0);
-					facingDirection = Facing.Left;
+					if (!checkConflict(Facing.Left))
+					{
+						moveDirection = setMoveDirection(-1, 0);
+						facingDirection = Facing.Left;
+						GetComponent<SpriteRenderer>().sprite = spriteList[6];
+						GetComponent<Animator>().runtimeAnimatorController = animationList[6];
+					}
+				}
+				else if (button == "right")
+				{
+					if (!checkConflict(Facing.Right))
+					{
+						moveDirection = setMoveDirection(1, 0);
+						facingDirection = Facing.Right;
+						GetComponent<SpriteRenderer>().sprite = spriteList[5];
+						GetComponent<Animator>().runtimeAnimatorController = animationList[5];
+					}
+				}
+				else if (button == "up")
+				{
+					if (!checkConflict(Facing.Up))
+					{
+						moveDirection = setMoveDirection(0, 1);
+						facingDirection = Facing.Up;
+						GetComponent<SpriteRenderer>().sortingOrder -= 10;
+						GetComponent<SpriteRenderer>().sprite = spriteList[7];
+						GetComponent<Animator>().runtimeAnimatorController = animationList[7];
+					}
+				}
+				else if (button == "down")
+				{
+					if (!checkConflict(Facing.Down))
+					{
+						moveDirection = setMoveDirection(0, -1);
+						facingDirection = Facing.Down;
+						GetComponent<SpriteRenderer>().sortingOrder += 10;
+						GetComponent<SpriteRenderer>().sprite = spriteList[4];
+						GetComponent<Animator>().runtimeAnimatorController = animationList[4];
+					}
 				}
 			}
-			else if (button == "right")
+
+			if(button == "A")
 			{
-				if (!checkConflict(Facing.Right))
-				{
-					moveDirection = setMoveDirection(1, 0);
-					facingDirection = Facing.Right;
-				}
+				CmdDestroyBlock();
 			}
-			else if (button == "up")
+
+			if(button == "B")
 			{
-				if (!checkConflict(Facing.Up))
-				{
-					moveDirection = setMoveDirection(0, 1);
-					facingDirection = Facing.Up;
-					GetComponent<SpriteRenderer>().sortingOrder -= 10;
-				}
-			}
-			else if (button == "down")
-			{
-				if (!checkConflict(Facing.Down))
-				{
-					moveDirection = setMoveDirection(0, -1);
-					facingDirection = Facing.Down;
-					GetComponent<SpriteRenderer>().sortingOrder += 10;
-				}
+				CmdPlaceBomb();
 			}
 		}
+
 	}
 
 	void Update()
@@ -185,8 +226,7 @@ public class PlayerController : NetworkBehaviour
 		// Multiplayer players sync themselves
 		if (!isLocalPlayer)
 			return;
-		//Debug.Log("moving is: " + moving);
-		//Debug.Log("busy is: " + busy);
+
 		if (moveDirection == Vector3.zero && !checkBusy())
 		{
 			if (Input.GetButton("left"))
@@ -234,6 +274,25 @@ public class PlayerController : NetworkBehaviour
 
 			if (t >= 1)
 			{
+				switch (facingDirection)
+				{
+					case Facing.Down:
+						GetComponent<SpriteRenderer>().sprite = spriteList[0];
+						GetComponent<Animator>().runtimeAnimatorController = null;
+						break;
+					case Facing.Right:
+						GetComponent<SpriteRenderer>().sprite = spriteList[1];
+						GetComponent<Animator>().runtimeAnimatorController = null;
+						break;
+					case Facing.Left:
+						GetComponent<SpriteRenderer>().sprite = spriteList[2];
+						GetComponent<Animator>().runtimeAnimatorController = null;
+						break;
+					case Facing.Up:
+						GetComponent<SpriteRenderer>().sprite = spriteList[3];
+						GetComponent<Animator>().runtimeAnimatorController = null;
+						break;
+				}
 				moveDirection = Vector3.zero;
 				lerpAnchor = Vector3.zero;
 				t = 0;
@@ -310,6 +369,24 @@ public class PlayerController : NetworkBehaviour
 		NetworkServer.Spawn(activeBomb);
 	}
 
+	[Command]
+	void CmdDestroyBlock()
+	{
+		GameObject actionBlock = null;
+		Vector2Int index = new Vector2Int(playerIndex[0], playerIndex[1]);
+		index += FaceToIndex(facingDirection);
+		actionBlock = GetFromPlane(index.y, index.x, PlanePosition.PlaneType.Action);
+		if (actionBlock != null)
+		{
+			busy = true;
+			GameObject overlay = GameObject.Instantiate<GameObject>(destroyOverlay);
+			overlay.GetComponent<SpriteRenderer>().sortingOrder = actionBlock.GetComponent<SpriteRenderer>().sortingOrder + 1;
+			overlay.transform.position = actionBlock.transform.position;
+			TimedDeath td = actionBlock.AddComponent<TimedDeath>();
+			td.Life = 1.0f;
+			StartCoroutine(busyDelay(1));
+		}
+	}
 	public static Vector3 FaceToVec(Facing facing)
 	{
 		switch (facing)
