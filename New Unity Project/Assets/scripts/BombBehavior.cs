@@ -78,6 +78,11 @@ public class BombBehavior : NetworkBehaviour {
 					}
 					else
 					{
+						//if there was an action plane block there
+						if(actionBlock.name.StartsWith("log"))
+						{
+							actionBlock.AddComponent<BlockDestruction>();
+						}
 						break;
 					}
 				}

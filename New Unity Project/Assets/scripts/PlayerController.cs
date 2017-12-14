@@ -32,7 +32,7 @@ public class PlayerController : NetworkBehaviour
 	public Facing facingDirection = Facing.Down;
 	public PowerUp currentPowerUp = PowerUp.None;
 
-	private int[] playerIndex = new int[2];
+	private Vector2Int playerIndex = new Vector2Int();
 	private Vector2Int realPlayerIndex = new Vector2Int();
 
 	private bool moving = false;
@@ -56,9 +56,9 @@ public class PlayerController : NetworkBehaviour
 		GenerateLevel serverInfo = GameObject.FindGameObjectWithTag("LevelModel").GetComponent<GenerateLevel>();
 		playerNumber = serverInfo.assignPlayer;
 		++serverInfo.assignPlayer;
-		realPlayerIndex = serverInfo.indexToPosition(serverInfo.playerOneIndex);
-		GetComponent<SpriteRenderer>().sortingOrder = realPlayerIndex.y + 101;
-		transform.position = new Vector3(realPlayerIndex.x, realPlayerIndex.y + 0.5f, 0);
+		playerIndex = serverInfo.indexToPosition(serverInfo.playerOneIndex);
+		GetComponent<SpriteRenderer>().sortingOrder = playerIndex.y + 101;
+		transform.position = new Vector3(playerIndex.x, playerIndex.y + 0.5f, 0);
 	}
 
 	public override void OnStartLocalPlayer()
@@ -82,13 +82,13 @@ public class PlayerController : NetworkBehaviour
 					workingIndex = serverInfo.playerFourIndex;
 					break;
 			}
-			realPlayerIndex = serverInfo.indexToPosition(workingIndex);
-			GetComponent<SpriteRenderer>().sortingOrder = realPlayerIndex.y + 101;
-			transform.position = new Vector3(realPlayerIndex.x, -realPlayerIndex.y + 0.5f, 0);
+			playerIndex = serverInfo.indexToPosition(workingIndex);
+			GetComponent<SpriteRenderer>().sortingOrder = playerIndex.y + 101;
+			transform.position = new Vector3(playerIndex.x, -playerIndex.y + 0.5f, 0);
 		}
 
 		Debug.Log("Player number is: " + playerNumber);
-		Debug.Log("realPlayerIndex: " + realPlayerIndex);
+		Debug.Log("realPlayerIndex: " + playerIndex);
 		Debug.Log("position: " + transform.position);
 		Debug.Log("sort order is: " + GetComponent<SpriteRenderer>().sortingOrder);
 		base.OnStartLocalPlayer();
@@ -386,7 +386,7 @@ public class PlayerController : NetworkBehaviour
 		GameObject activeBomb = GameObject.Instantiate<GameObject>(bomb);
 		activeBomb.transform.position = new Vector3(playerIndex[0], -playerIndex[1] + 0.5f, 0);
 		activeBomb.transform.position += FaceToVec(facingDirection);
-		activeBomb.GetComponent<SpriteRenderer>().sortingOrder = GetComponent<SpriteRenderer>().sortingOrder + FaceToSort(facingDirection);
+		activeBomb.GetComponent<SpriteRenderer>().sortingOrder = GetComponent<SpriteRenderer>().sortingOrder + FaceToSort(facingDirection) + 100;
 		activeBomb.GetComponent<PlanePosition>().Set(playerIndex, PlanePosition.PlaneType.Action);
 		NetworkServer.Spawn(activeBomb);
 	}

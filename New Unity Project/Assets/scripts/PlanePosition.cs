@@ -49,6 +49,11 @@ public class PlanePosition : NetworkBehaviour {
 		Set(index[1], index[0], type);
 	}
 
+	public void Set(Vector2Int index, PlaneType type)
+	{
+		Set(index[1], index[0], type);
+	}
+
 	// Update is called once per frame
 	void Update () {
 		// Overkill to do this every frame, event handler would be better
