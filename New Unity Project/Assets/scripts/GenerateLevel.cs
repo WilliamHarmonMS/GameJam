@@ -144,7 +144,6 @@ public class GenerateLevel : NetworkBehaviour
 	// Update is called once per frame
 	void Update()
 	{
-
 	}
 
 	private void SpawnInPlane(GameObject obj, int row, int col, GameObject[,] plane)

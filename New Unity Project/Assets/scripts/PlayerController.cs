@@ -48,7 +48,6 @@ public class PlayerController : NetworkBehaviour
 	void Start()
 	{
 		levelModel = GameObject.FindGameObjectWithTag("LevelModel").GetComponent<GenerateLevel>();
-
 	}
 
 	public override void OnStartServer()
@@ -112,11 +111,29 @@ public class PlayerController : NetworkBehaviour
 
 		playerIndex[0] = playerIndex[0] + x;
 		playerIndex[1] = playerIndex[1] - y;
+		updateIndexOnServer(playerNumber);
 		moving = true;
 		return new Vector3(x, y, 0);
 	}
 
-	
+	void updateIndexOnServer(int myNumber)
+	{
+		switch (myNumber)
+		{
+			case 1:
+				levelModel.playerOneIndex = levelModel.positionToIndex(playerIndex.x, playerIndex.y);
+				break;
+			case 2:
+				levelModel.playerTwoIndex = levelModel.positionToIndex(playerIndex.x, playerIndex.y);
+				break;
+			case 3:
+				levelModel.playerThreeIndex = levelModel.positionToIndex(playerIndex.x, playerIndex.y);
+				break;
+			case 4:
+				levelModel.playerFourIndex = levelModel.positionToIndex(playerIndex.x, playerIndex.y);
+				break;
+		}
+	}
 
 	void assignPower(GameObject pUp)
 	{
@@ -237,7 +254,8 @@ public class PlayerController : NetworkBehaviour
 
 			if(button == "B")
 			{
-				CmdPlaceBomb();
+				Debug.Log("player number is: " + playerNumber);
+				CmdPlaceBomb(playerNumber);
 			}
 		}
 
@@ -325,7 +343,7 @@ public class PlayerController : NetworkBehaviour
 		if (Input.GetButtonDown("shoot") && !checkBusy())
 		{
 			// Shoot on the server
-			CmdPlaceBomb();
+			CmdPlaceBomb(playerNumber);
 		}
 
 		if (Input.GetButtonDown("place") && !checkBusy())
@@ -381,13 +399,29 @@ public class PlayerController : NetworkBehaviour
 	}
 
 	[Command]
-	void CmdPlaceBomb()
+	void CmdPlaceBomb(int whichPlayer)
 	{
+		Vector2Int activeIndex = new Vector2Int();
+		switch (whichPlayer)
+		{
+			case 1:
+				activeIndex = levelModel.indexToPosition(levelModel.playerOneIndex);
+				break;
+			case 2:
+				activeIndex = levelModel.indexToPosition(levelModel.playerTwoIndex);
+				break;
+			case 3:
+				activeIndex = levelModel.indexToPosition(levelModel.playerThreeIndex);
+				break;
+			case 4:
+				activeIndex = levelModel.indexToPosition(levelModel.playerFourIndex);
+				break;
+		}
 		GameObject activeBomb = GameObject.Instantiate<GameObject>(bomb);
-		activeBomb.transform.position = new Vector3(playerIndex[0], -playerIndex[1] + 0.5f, 0);
+		activeBomb.transform.position = new Vector3(activeIndex[0], -activeIndex[1] + 0.5f, 0);
 		activeBomb.transform.position += FaceToVec(facingDirection);
 		activeBomb.GetComponent<SpriteRenderer>().sortingOrder = GetComponent<SpriteRenderer>().sortingOrder + FaceToSort(facingDirection) + 100;
-		activeBomb.GetComponent<PlanePosition>().Set(playerIndex, PlanePosition.PlaneType.Action);
+		activeBomb.GetComponent<PlanePosition>().Set(activeIndex, PlanePosition.PlaneType.Action);
 		NetworkServer.Spawn(activeBomb);
 	}
 
