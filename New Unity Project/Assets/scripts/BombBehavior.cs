@@ -63,6 +63,18 @@ public class BombBehavior : NetworkBehaviour {
 				}
 				else
 				{
+					
+					int affectedIndex = levelModel.positionToIndex(index[0], index[1]);
+					Debug.Log("affectedIndex = " + affectedIndex);
+					Debug.Log("levelModel.playerOneIndex = " + levelModel.playerOneIndex);
+					Debug.Log("levelModel.playerTwoIndex = " + levelModel.playerTwoIndex);
+					if (affectedIndex == levelModel.playerOneIndex)
+					{
+						levelModel.playerOneIndex = 1000;
+					} else if (affectedIndex == levelModel.playerTwoIndex)
+					{
+						levelModel.playerTwoIndex = 1000;
+					}
 					GameObject actionBlock = actionPlane[index[0] + workingX, index[1] + workingY];
 					if (actionBlock == null)
 					{
