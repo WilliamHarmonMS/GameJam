@@ -66,11 +66,11 @@ public class PlanePosition : NetworkBehaviour {
 		{
 			case PlaneType.Action:
 				mul = 10;
-				bias = 100;
+				bias = 110;
 				break;
 			case PlaneType.Player:
 				mul = 10;
-				bias = 101;
+				bias = 110;
 				break;
 		}
 		GetComponent<SpriteRenderer>().sortingOrder = Row * mul + bias;

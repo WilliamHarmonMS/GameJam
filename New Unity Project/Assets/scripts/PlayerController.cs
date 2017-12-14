@@ -81,6 +81,8 @@ public class PlayerController : NetworkBehaviour
 					workingIndex = serverInfo.playerFourIndex;
 					break;
 			}
+			int offset = (playerNumber - 1) * 8;
+			GetComponent<SpriteRenderer>().sprite = spriteList[0 + offset];
 			SetPlayerIndex(serverInfo.indexToPosition(workingIndex));
 			GetComponent<SpriteRenderer>().sortingOrder = playerIndex.y + 101;
 			transform.position = new Vector3(playerIndex.x, -playerIndex.y + 0.5f, 0);
@@ -281,12 +283,13 @@ public class PlayerController : NetworkBehaviour
 
 	void UpdateAnimation()
 	{
+		int offset = (playerNumber - 1) * 8;
 		Animator anim = GetComponent<Animator>();
 		if (anim.runtimeAnimatorController == null && moveDirection != Vector3.zero)
 		{
 			Facing facing = VecToFace(moveDirection);
 			SetSprite(facing, false);
-			anim.runtimeAnimatorController = animationList[GetSpriteIndex(facing) + 4];
+			anim.runtimeAnimatorController = animationList[(GetSpriteIndex(facing) + 4) + offset];
 		}
 		else if (anim.runtimeAnimatorController != null && moveDirection == Vector3.zero)
 		{
@@ -362,7 +365,7 @@ public class PlayerController : NetworkBehaviour
 				lerpAnchor = transform.position;
 			}
 
-			transform.position = Vector3.Lerp(lerpAnchor, lerpAnchor + moveDirection, t);
+			transform.position = Vector3.Lerp(lerpAnchor, lerpAnchor + moveDirection * 1.05f, t);
 			t += Time.deltaTime * speed;
 
 			if (t >= 1)
@@ -439,7 +442,7 @@ public class PlayerController : NetworkBehaviour
 		GameObject activeBomb = GameObject.Instantiate<GameObject>(bomb);
 		activeBomb.transform.position = new Vector3(activeIndex[0], -activeIndex[1] + 0.5f, 0);
 		activeBomb.transform.position += FaceToVec(facingDirection);
-		activeBomb.GetComponent<SpriteRenderer>().sortingOrder = GetComponent<SpriteRenderer>().sortingOrder + FaceToSort(facingDirection) + 100;
+		activeBomb.GetComponent<SpriteRenderer>().sortingOrder = GetComponent<SpriteRenderer>().sortingOrder + FaceToSort(facingDirection);
 		activeBomb.GetComponent<PlanePosition>().Set(activeIndex, PlanePosition.PlaneType.Action);
 		NetworkServer.Spawn(activeBomb);
 	}
