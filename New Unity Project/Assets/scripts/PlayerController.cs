@@ -255,7 +255,7 @@ public class PlayerController : NetworkBehaviour
 			if(button == "B")
 			{
 				Debug.Log("player number is: " + playerNumber);
-				CmdPlaceBomb(playerNumber);
+				CmdPlaceBomb(playerIndex.x, playerIndex.y);
 			}
 		}
 
@@ -343,7 +343,7 @@ public class PlayerController : NetworkBehaviour
 		if (Input.GetButtonDown("shoot") && !checkBusy())
 		{
 			// Shoot on the server
-			CmdPlaceBomb(playerNumber);
+			CmdPlaceBomb(playerIndex.x, playerIndex.y);
 		}
 
 		if (Input.GetButtonDown("place") && !checkBusy())
@@ -399,24 +399,9 @@ public class PlayerController : NetworkBehaviour
 	}
 
 	[Command]
-	void CmdPlaceBomb(int whichPlayer)
+	void CmdPlaceBomb(int x, int y)
 	{
-		Vector2Int activeIndex = new Vector2Int();
-		switch (whichPlayer)
-		{
-			case 1:
-				activeIndex = levelModel.indexToPosition(levelModel.playerOneIndex);
-				break;
-			case 2:
-				activeIndex = levelModel.indexToPosition(levelModel.playerTwoIndex);
-				break;
-			case 3:
-				activeIndex = levelModel.indexToPosition(levelModel.playerThreeIndex);
-				break;
-			case 4:
-				activeIndex = levelModel.indexToPosition(levelModel.playerFourIndex);
-				break;
-		}
+		Vector2Int activeIndex = new Vector2Int(x, y);
 		GameObject activeBomb = GameObject.Instantiate<GameObject>(bomb);
 		activeBomb.transform.position = new Vector3(activeIndex[0], -activeIndex[1] + 0.5f, 0);
 		activeBomb.transform.position += FaceToVec(facingDirection);
