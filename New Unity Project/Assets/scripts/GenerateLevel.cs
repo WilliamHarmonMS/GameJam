@@ -46,7 +46,7 @@ public class GenerateLevel : NetworkBehaviour
 		"", "stone", "", "stone", "", "stone", "", "stone", "", "",
 		"", "", "", "", "", "", "", "stone", "", "",
 		"", "", "stone", "stone", "", "", "stone", "stone", "", "",
-		"flint", "", "", "", "log", "", "", "", "", "",};
+		"flint", "flint", "flint", "", "log", "", "", "", "", "",};
 
 
 	void Start()

@@ -7,6 +7,7 @@ public class BombBehavior : NetworkBehaviour
 {
 	public float lifetime;
 	public GameObject explosion;
+	public GameObject explosionTip;
 	public int threatenedSpaces = 1;
 	private float timer = 2.0f;
 	private float flashTimer = 0.3f;
@@ -93,7 +94,27 @@ public class BombBehavior : NetworkBehaviour
 					GameObject actionBlock = actionPlane[index[0] + workingX, index[1] + workingY];
 					if (actionBlock == null)
 					{
-						GameObject workingExplo = GameObject.Instantiate<GameObject>(explosion);
+						GameObject workingExplo = null;
+						if (j == threatenedSpaces)
+						{
+							workingExplo = GameObject.Instantiate<GameObject>(explosionTip);
+						} else
+						{
+							workingExplo = GameObject.Instantiate<GameObject>(explosion);
+						}
+
+						if(workingY < 0)
+						{
+							workingExplo.transform.rotation = Quaternion.Euler(new Vector3(0,0,90));
+						} else if (workingY > 0)
+						{
+							workingExplo.transform.rotation = Quaternion.Euler(new Vector3(0, 0, 270));
+						} else if (workingX < 0)
+						{
+							workingExplo.transform.rotation = Quaternion.Euler(new Vector3(0, 0, 180));
+						}
+
+
 						float x = groundPlane[index[0] + workingX, index[1] + workingY].transform.position.x;
 						float y = groundPlane[index[0] + workingX, index[1] + workingY].transform.position.y + 0.4f;
 
