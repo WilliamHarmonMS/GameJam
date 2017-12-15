@@ -107,6 +107,7 @@ public class PlayerController : NetworkBehaviour
 				}
 				if (indexOccupant.tag == "PowerUp")
 				{
+					CmdSetPowerUp(indexOccupant);
 					assignPower(indexOccupant);
 				}
 			}
@@ -551,6 +552,34 @@ public class PlayerController : NetworkBehaviour
 	void CmdSetPlayerIndex(int x, int y)
 	{
 		GetComponent<PlanePosition>().Set(new Vector2Int(x, y), PlanePosition.PlaneType.Player);
+	}
+
+	[Command]
+	void CmdSetPowerUp(GameObject pUp)
+	{
+		if (pUp.name.StartsWith("pick"))
+		{
+			currentPowerUp = PowerUp.Pick;
+		}
+		else if (pUp.name.StartsWith("axe"))
+		{
+			currentPowerUp = PowerUp.Axe;
+		}
+		else if (pUp.name.StartsWith("hoe"))
+		{
+			currentPowerUp = PowerUp.Hoe;
+		}
+		else if (pUp.name.StartsWith("flint"))
+		{
+			currentPowerUp = PowerUp.Flint;
+			++tntStrength;
+		}
+		else if (pUp.name.StartsWith("shovel"))
+		{
+			currentPowerUp = PowerUp.Shovel;
+		}
+		NetworkServer.UnSpawn(pUp);
+		Destroy(pUp);
 	}
 }
 

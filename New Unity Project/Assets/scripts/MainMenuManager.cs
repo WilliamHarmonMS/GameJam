@@ -3,15 +3,17 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 
-public class MainMenuManager : MonoBehaviour {
-
+public class MainMenuManager : MonoBehaviour
+{
 	public GameObject myNetworkManager;
+
 	public GameObject[] UIElements;
+
 	public GameObject[] ControllerElements;
 
 	// Use this for initialization
 	void Start () {
-		foreach(GameObject obj in ControllerElements)
+	foreach(GameObject obj in ControllerElements)
 		{
 			obj.SetActive(false);
 		}
