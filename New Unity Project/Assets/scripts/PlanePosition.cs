@@ -18,6 +18,11 @@ public class PlanePosition : NetworkBehaviour {
 	[SyncVar]
 	public PlaneType Type;
 
+	public Vector2Int getPos()
+	{
+		return new Vector2Int(GetColumn(), GetRow());
+	}
+
 	public int GetRow()
 	{
 		return Row;

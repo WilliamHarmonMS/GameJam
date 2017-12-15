@@ -32,15 +32,15 @@ public class PlayerController : NetworkBehaviour
 	public Facing facingDirection = Facing.Down;
 	public PowerUp currentPowerUp = PowerUp.None;
 
-	private Vector2Int playerIndex = new Vector2Int();
-	private Vector2Int realPlayerIndex = new Vector2Int();
+	public Vector2Int playerIndex = new Vector2Int();
+	public int tntStrength = 1;
 
 	private bool moving = false;
 	private bool busy = false;
 	private Vector3 moveDirection = Vector3.zero;
 	private float t = 0.0f;
 	private Vector3 lerpAnchor = Vector3.zero;
-	private int playerNumber = -1;
+	public int playerNumber = -1;
 
 	public Sprite[] spriteList;
 	public RuntimeAnimatorController[] animationList;
@@ -87,11 +87,6 @@ public class PlayerController : NetworkBehaviour
 			GetComponent<SpriteRenderer>().sortingOrder = playerIndex.y + 101;
 			transform.position = new Vector3(playerIndex.x, -playerIndex.y + 0.5f, 0);
 		}
-
-		Debug.Log("Player number is: " + playerNumber);
-		Debug.Log("realPlayerIndex: " + playerIndex);
-		Debug.Log("position: " + transform.position);
-		Debug.Log("sort order is: " + GetComponent<SpriteRenderer>().sortingOrder);
 		base.OnStartLocalPlayer();
 		// Initalize things here, maybe grab a spawn location?
 	}
@@ -100,7 +95,9 @@ public class PlayerController : NetworkBehaviour
 	{
 		if (x != 0 || y != 0)
 		{
-			GameObject indexOccupant = GetFromPlane(playerIndex[1] - y, playerIndex[0] + x, PlanePosition.PlaneType.Action);
+			int col = GetComponent<PlanePosition>().GetColumn();
+			int row = GetComponent<PlanePosition>().GetRow();
+			GameObject indexOccupant = GetFromPlane(row - y, col + x, PlanePosition.PlaneType.Action);
 			if (indexOccupant != null)
 			{
 				if (indexOccupant.tag == "ActionBlock")
@@ -169,6 +166,7 @@ public class PlayerController : NetworkBehaviour
 		} else if (pUp.name.StartsWith("flint"))
 		{
 			currentPowerUp = PowerUp.Flint;
+			++tntStrength;
 		} else if (pUp.name.StartsWith("shovel"))
 		{
 			currentPowerUp = PowerUp.Shovel;
@@ -264,7 +262,6 @@ public class PlayerController : NetworkBehaviour
 
 			if(button == "B")
 			{
-				Debug.Log("player number is: " + playerNumber);
 				CmdPlaceBomb(playerIndex.x, playerIndex.y);
 			}
 		}
@@ -365,11 +362,13 @@ public class PlayerController : NetworkBehaviour
 				lerpAnchor = transform.position;
 			}
 
-			transform.position = Vector3.Lerp(lerpAnchor, lerpAnchor + moveDirection * 1.05f, t);
+			transform.position = Vector3.Lerp(lerpAnchor, lerpAnchor + moveDirection, t);
 			t += Time.deltaTime * speed;
+			t = Mathf.Clamp01(t);
 
 			if (t >= 1)
 			{
+				transform.position = lerpAnchor + moveDirection;
 				setMoveDirection(0, 0);
 				lerpAnchor = Vector3.zero;
 				t = 0;
@@ -440,6 +439,7 @@ public class PlayerController : NetworkBehaviour
 	{
 		Vector2Int activeIndex = new Vector2Int(x, y);
 		GameObject activeBomb = GameObject.Instantiate<GameObject>(bomb);
+		activeBomb.GetComponent<BombBehavior>().threatenedSpaces = tntStrength;
 		activeBomb.transform.position = new Vector3(activeIndex[0], -activeIndex[1] + 0.5f, 0);
 		activeBomb.transform.position += FaceToVec(facingDirection);
 		activeBomb.GetComponent<SpriteRenderer>().sortingOrder = GetComponent<SpriteRenderer>().sortingOrder + FaceToSort(facingDirection);
@@ -517,17 +517,17 @@ public class PlayerController : NetworkBehaviour
 		return new Vector3(col, -row + 0.5f, 0.0f);
 	}
 
-	private Vector2 CoordsToVec2(int row, int col)
+	public static Vector2 CoordsToVec2(int row, int col)
 	{
 		return new Vector2(col, -row + 0.5f);
 	}
 
-	private GameObject GetFromPlane(Vector2Int index, PlanePosition.PlaneType type)
+	public static GameObject GetFromPlane(Vector2Int index, PlanePosition.PlaneType type)
 	{
 		return GetFromPlane(index.y, index.x, type);
 	}
 
-	private GameObject GetFromPlane(int row, int col, PlanePosition.PlaneType type)
+	public static GameObject GetFromPlane(int row, int col, PlanePosition.PlaneType type)
 	{
 		Vector2 start = CoordsToVec2(row, col);
 		Collider2D[] hits = Physics2D.OverlapBoxAll(start, Vector2.one * 0.1f, 0.0f);
@@ -544,7 +544,13 @@ public class PlayerController : NetworkBehaviour
 	private void SetPlayerIndex(Vector2Int index)
 	{
 		playerIndex = index;
-		GetComponent<PlanePosition>().Set(index, PlanePosition.PlaneType.Player);
+		CmdSetPlayerIndex(index.x, index.y);
+	}
+
+	[Command]
+	void CmdSetPlayerIndex(int x, int y)
+	{
+		GetComponent<PlanePosition>().Set(new Vector2Int(x, y), PlanePosition.PlaneType.Player);
 	}
 }
 

@@ -3,33 +3,60 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 
-public class BombBehavior : NetworkBehaviour {
+public class BombBehavior : NetworkBehaviour
+{
 	public float lifetime;
 	public GameObject explosion;
-	public int threatenedSpaces = 4;
+	public int threatenedSpaces = 1;
 	private float timer = 2.0f;
 	private float flashTimer = 0.3f;
 
+	private GameObject PlayerOne;
+	private GameObject PlayerTwo;
+	private GameObject PlayerThree;
+	private GameObject PlayerFour;
 
 	private SpriteRenderer mySprite;
 	// Use this for initialization
-	void Start () {
+	void Start()
+	{
 		mySprite = GetComponent<SpriteRenderer>();
 		timer = lifetime;
+
+		GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
+		foreach (GameObject player in players)
+		{
+			if (player.GetComponent<PlayerController>().playerNumber == 1)
+			{
+				PlayerOne = player;
+			}
+			if (player.GetComponent<PlayerController>().playerNumber == 2)
+			{
+				PlayerTwo = player;
+			}
+			if (player.GetComponent<PlayerController>().playerNumber == 3)
+			{
+				PlayerThree = player;
+			}
+			if (player.GetComponent<PlayerController>().playerNumber == 4)
+			{
+				PlayerFour = player;
+			}
+		}
 	}
-	
+
 	int[] getIndex()
 	{
 		GenerateLevel levelModel = GameObject.FindGameObjectWithTag("LevelModel").GetComponent<GenerateLevel>();
 		GameObject[,] groundPlane = levelModel.groundPlane;
 		float shortest = float.MaxValue;
 		int[] index = new int[2];
-		for(int i = 0; i < levelModel.rowCount; ++i)
+		for (int i = 0; i < levelModel.rowCount; ++i)
 		{
-			for(int j = 0; j < levelModel.columnCount; ++j)
+			for (int j = 0; j < levelModel.columnCount; ++j)
 			{
 				float workingDist = Vector3.Distance(groundPlane[i, j].transform.position, transform.position + new Vector3(0, -0.1f, 0));
-				if(workingDist < shortest)
+				if (workingDist < shortest)
 				{
 					shortest = workingDist;
 					index[0] = i;
@@ -63,18 +90,6 @@ public class BombBehavior : NetworkBehaviour {
 				}
 				else
 				{
-					
-					int affectedIndex = levelModel.positionToIndex(index[0], index[1]);
-					Debug.Log("affectedIndex = " + affectedIndex);
-					Debug.Log("levelModel.playerOneIndex = " + levelModel.playerOneIndex);
-					Debug.Log("levelModel.playerTwoIndex = " + levelModel.playerTwoIndex);
-					if (affectedIndex == levelModel.playerOneIndex)
-					{
-						levelModel.playerOneIndex = 1000;
-					} else if (affectedIndex == levelModel.playerTwoIndex)
-					{
-						levelModel.playerTwoIndex = 1000;
-					}
 					GameObject actionBlock = actionPlane[index[0] + workingX, index[1] + workingY];
 					if (actionBlock == null)
 					{
@@ -82,6 +97,13 @@ public class BombBehavior : NetworkBehaviour {
 						float x = groundPlane[index[0] + workingX, index[1] + workingY].transform.position.x;
 						float y = groundPlane[index[0] + workingX, index[1] + workingY].transform.position.y + 0.4f;
 
+						int affectedIndex = levelModel.positionToIndex(index[0] + workingX, index[1] + workingY);
+						GameObject player = PlayerController.GetFromPlane(new Vector2Int(index[0] + workingX, index[1] + workingY), PlanePosition.PlaneType.Player);
+						if (player != null)
+						{
+							NetworkServer.UnSpawn(player);
+							Destroy(player);
+						}
 
 						workingExplo.transform.position = new Vector3(x, y, 0);
 						workingExplo.GetComponent<SpriteRenderer>().sortingOrder = 2000;
@@ -91,7 +113,7 @@ public class BombBehavior : NetworkBehaviour {
 					else
 					{
 						//if there was an action plane block there
-						if(actionBlock.name.StartsWith("log"))
+						if (actionBlock.name.StartsWith("log"))
 						{
 							actionBlock.AddComponent<BlockDestruction>();
 						}
@@ -146,12 +168,13 @@ public class BombBehavior : NetworkBehaviour {
 	}
 
 	// Update is called once per frame
-	void Update () {
-		if(timer > 0)
+	void Update()
+	{
+		if (timer > 0)
 		{
 			timer -= Time.deltaTime;
 			flashTimer -= Time.deltaTime;
-			if(flashTimer <= 0)
+			if (flashTimer <= 0)
 			{
 				if (mySprite.color == Color.white)
 				{
@@ -162,13 +185,15 @@ public class BombBehavior : NetworkBehaviour {
 					mySprite.color = Color.white;
 				}
 
-				if(timer > lifetime * 0.66f)
+				if (timer > lifetime * 0.66f)
 				{
 					flashTimer = 0.3f;
-				} else if (timer > lifetime * 0.33f)
+				}
+				else if (timer > lifetime * 0.33f)
 				{
 					flashTimer = 0.2f;
-				} else
+				}
+				else
 				{
 					flashTimer = 0.1f;
 				}
